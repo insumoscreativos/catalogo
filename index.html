@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Insumos Creativos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .grid-custom { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+#searchSuggestions{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:0 0 12px 12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.12);z-index:999;display:none;max-height:420px;overflow-y:auto;opacity:0;transform:translateY(-8px);transition:opacity .18s ease,transform .18s ease;overscroll-behavior:contain}.suggestions-visible{display:block!important;opacity:1!important;transform:translateY(0)!important}
+.suggestion-item{display:flex;align-items:center;gap:14px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f1f1;background:#fff;transition:background-color .15s ease}.suggestion-item:last-child{border-bottom:none}
+.suggestion-item:hover,.suggestion-item.active{background:#e6f4f1}
+.suggestion-item img{width:58px;height:58px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.suggestion-main{min-width:0;flex:1}
+.suggestion-name{font-weight:700;color:#1f2937}.suggestion-sku{font-size:12px;color:#888}.suggestion-price{margin-left:auto;color:#3e6d6d;font-weight:bold;white-space:nowrap}
+.suggestion-empty{text-align:center;padding:18px;color:#999}
+mark{background:#fff59d;padding:0 .08em;border-radius:3px}
+    </style>
+</head>
+<body class="bg-[#f5f2ee] min-h-screen">
+
+    <!-- HEADER MÓVIL -->
+    <div class="md:hidden bg-[#3e6d6d] p-3 text-white flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <img src="logo.jpeg" alt="Logo" class="w-12 h-12 rounded-full border-2 border-white object-cover">
+            <span class="text-xs font-bold uppercase tracking-wider">TIENDA INSUMOS CREATIVOS</span>
+        </div>
+        <button onclick="document.getElementById('sidebar').classList.toggle('hidden')" class="p-2 border border-white rounded">☰ MENÚ</button>
+    </div>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside id="sidebar" class="hidden md:block w-full md:w-64 bg-[#3e6d6d] text-white p-6 shadow-xl flex-shrink-0">
+            <div class="flex flex-col items-center mb-10">
+                <img src="logo.jpeg" alt="Logo" class="w-24 h-24 rounded-full border-2 border-white mb-4 object-cover">
+                <h1 class="text-lg font-bold text-center text-white">TIENDA INSUMOS CREATIVOS</h1>
+            </div>
+            <nav class="space-y-2 mb-8">
+                <button onclick="filterProducts('DESTACADOS'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">DESTACADOS</button>
+                <button onclick="filterProducts('ACCESORIOS CELULAR'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">ACCESORIOS CELULAR</button>
+                <button onclick="filterProducts('INVIERNO'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">INVIERNO</button>
+                <button onclick="filterProducts('LANYARDS E IDENTIFICACIÓN'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">LANYARDS E IDENTIFICACIÓN</button>
+                <button onclick="filterProducts('SUBLIMACIÓN'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">SUBLIMACIÓN</button>
+            </nav>
+            
+            <div class="flex justify-center gap-6 pt-6 border-t border-[#2c4e4e]">
+                <a href="https://web.facebook.com/insumos.creativos.2025/" target="_blank" class="text-white hover:text-gray-200 text-2xl transition">
+                    <i class="fab fa-facebook"></i>
+                </a>
+                <a href="https://www.instagram.com/tiendainsumoscreativos/" target="_blank" class="text-white hover:text-gray-200 text-2xl transition">
+                    <i class="fab fa-instagram"></i>
+                </a>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-8">
+            <div class="max-w-6xl mx-auto">
+                <div class="relative w-full mb-8">
+<input type="text" id="searchInput" placeholder="Buscar producto o SKU..." autocomplete="off" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false" aria-activedescendant="" class="w-full p-4 pl-12 pr-12 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-[#3e6d6d] outline-none">
+<i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+<button id="clearSearch" type="button" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 font-bold">✕</button>
+<div id="searchSuggestions" role="listbox" aria-label="Sugerencias de búsqueda"></div>
+</div>
+                <h2 id="section-title" class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2 italic uppercase">DESTACADOS</h2>
+                <div id="content-area" class="grid-custom"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="productos.js"></script>
+<script>
+        // Los productos se cargan desde productos.js
+
+myProducts.forEach(p=>{p._name=p.name.toLowerCase();p._sku=p.sku.toLowerCase();});
+
+        let currentCategory="DESTACADOS";
+
+function showDetails(sku) {
+            const p = myProducts.find(item => item.sku === sku);
+            document.getElementById('section-title').innerText = "DETALLE";
+            const container = document.getElementById('content-area');
+            container.className="";
+            container.innerHTML = `
+                <div class="w-full bg-white p-8 rounded-2xl shadow-xl">
+                    <button onclick="filterProducts(currentCategory)" class="mb-6 px-4 py-2 rounded-lg bg-[#3e6d6d] text-white font-bold">← Volver</button>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <img id="mainImage" src="${p.images[0]}" class="w-full h-80 object-contain rounded-lg mb-4 bg-gray-50">
+                            <div class="flex flex-wrap gap-2">
+                                ${p.images.map(img => `<img src="${img}" onclick="document.getElementById('mainImage').src='${img}'" class="w-16 h-16 object-cover rounded cursor-pointer border hover:border-[#3e6d6d]">`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-bold">${p.name}</h2>
+                            <p class="text-lg text-gray-500 font-mono mb-4">SKU: ${p.sku}</p>
+                            <p class="text-2xl text-[#3e6d6d] font-bold my-4">$${p.price.toLocaleString()}</p>
+                            <div class="text-gray-600 mb-6">${p.desc}</div>
+                            <a href="https://wa.me/56934863212?text=Consulta por: ${p.name} - SKU: ${p.sku}" class="block w-full bg-[#3e6d6d] text-white py-3 rounded-lg font-bold text-center">Consultar por WhatsApp</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function render(list, title) {
+            const container = document.getElementById('content-area');
+            currentCategory=title;
+            if (title !== 'BÚSQUEDA' && title !== 'DETALLE') lastBrowsingCategory = title;
+            if (title !== 'BÚSQUEDA' && title !== 'DETALLE') lastBrowsingCategory = title;
+            container.className="grid-custom";
+            document.getElementById('section-title').innerText = title;
+            container.innerHTML = list.map(p => `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col transition">
+                    <div class="cursor-pointer" onclick="showDetails('${p.sku}')">
+                        <img src="${p.images[0]}" class="w-full h-48 object-contain rounded-lg mb-4 bg-gray-50">
+                        <h2 class="font-bold text-lg text-gray-800">${p.name}</h2>
+                        <p class="text-xs text-gray-400 font-mono mb-2">SKU: ${p.sku}</p>
+                    </div>
+                    <p class="text-gray-900 font-bold text-xl my-2">$${p.price.toLocaleString()}</p>
+                    <a href="https://wa.me/56934863212?text=Consulta por: ${p.name} - SKU: ${p.sku}" class="mt-auto w-full bg-[#3e6d6d] text-white py-2 rounded-lg text-center font-bold">Consultar por WhatsApp</a>
+                </div>
+            `).join('');
+        }
+
+        function filterProducts(cat) {
+            const filtered = myProducts.filter(p => Array.isArray(p.category) ? p.category.includes(cat) : p.category === cat);
+            render(filtered, cat);
+        }
+
+        function normalize(text) {
+            return (text || '')
+                .toString()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        }
+
+        myProducts.forEach(product => {
+            product._searchName = normalize(product.name);
+            product._searchSku = normalize(product.sku);
+            product._searchText = `${product._searchName} ${product._searchSku}`;
+        });
+
+        let searchResults = [];
+        let activeSuggestionIndex = -1;
+        let lastBrowsingCategory = currentCategory;
+        const MAX_SUGGESTIONS = 12;
+        const searchInput = document.getElementById('searchInput');
+        const suggestionBox = document.getElementById('searchSuggestions');
+        const clearSearchButton = document.getElementById('clearSearch');
+        const searchWrap = searchInput.closest('.relative');
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeRegExp(text) {
+            return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function getSearchTokens(query) {
+            return normalize(query).split(/\s+/).filter(Boolean);
+        }
+
+        function scoreProduct(product, tokens) {
+            if (!tokens.length) return 0;
+            let score = 0;
+            for (const token of tokens) {
+                if (!product._searchText.includes(token)) return -1;
+                if (product._searchSku === token) score += 120;
+                else if (product._searchSku.startsWith(token)) score += 80;
+                else if (product._searchSku.includes(token)) score += 60;
+                if (product._searchName.startsWith(token)) score += 45;
+                else if (product._searchName.includes(token)) score += 25;
+            }
+            score -= product._searchName.length * 0.01;
+            return score;
+        }
+
+        function fastSearchProducts(query) {
+            const tokens = getSearchTokens(query);
+            if (!tokens.length) return [];
+            return myProducts
+                .map(product => ({ product, score: scoreProduct(product, tokens) }))
+                .filter(item => item.score >= 0)
+                .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name, 'es'))
+                .map(item => item.product);
+        }
+
+        function highlightMatch(text, query) {
+            const tokens = [...new Set(getSearchTokens(query))].sort((a, b) => b.length - a.length);
+            let html = escapeHtml(text);
+            tokens.forEach(token => {
+                const regex = new RegExp(`(${escapeRegExp(token)})`, 'ig');
+                html = html.replace(regex, '<mark>$1</mark>');
+            });
+            return html;
+        }
+
+        function openSuggestions() {
+            suggestionBox.style.display = 'block';
+            suggestionBox.classList.add('suggestions-visible');
+            searchInput.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeSuggestions() {
+            suggestionBox.classList.remove('suggestions-visible');
+            suggestionBox.style.display = 'none';
+            searchInput.setAttribute('aria-expanded', 'false');
+            searchInput.setAttribute('aria-activedescendant', '');
+            activeSuggestionIndex = -1;
+        }
+
+        function updateClearButton() {
+            clearSearchButton.classList.toggle('hidden', searchInput.value === '');
+        }
+
+        function renderSearchSuggestions(query) {
+            if (!query.trim()) {
+                searchResults = [];
+                suggestionBox.innerHTML = '';
+                closeSuggestions();
+                return;
+            }
+
+            searchResults = fastSearchProducts(query);
+            activeSuggestionIndex = -1;
+
+            if (!searchResults.length) {
+                suggestionBox.innerHTML = '<div class="suggestion-empty">No se encontraron productos</div>';
+                openSuggestions();
+                return;
+            }
+
+            const visibleResults = searchResults.slice(0, MAX_SUGGESTIONS);
+            suggestionBox.innerHTML = visibleResults.map((product, index) => `
+                <div id="suggestion-${index}" class="suggestion-item" data-index="${index}" data-sku="${product.sku}" role="option" aria-selected="false">
+                    <img src="${product.images[0]}" alt="${escapeHtml(product.name)}">
+                    <div class="suggestion-main">
+                        <div class="suggestion-name">${highlightMatch(product.name, query)}</div>
+                        <div class="suggestion-sku">SKU: ${highlightMatch(product.sku, query)}</div>
+                    </div>
+                    <div class="suggestion-price">$${product.price.toLocaleString()}</div>
+                </div>
+            `).join('');
+
+            openSuggestions();
+        }
+
+        function setActiveSuggestion(index) {
+            const items = suggestionBox.querySelectorAll('.suggestion-item');
+            if (!items.length) return;
+            activeSuggestionIndex = Math.max(0, Math.min(index, items.length - 1));
+            items.forEach((item, itemIndex) => {
+                const isActive = itemIndex === activeSuggestionIndex;
+                item.classList.toggle('active', isActive);
+                item.setAttribute('aria-selected', String(isActive));
+            });
+            const activeItem = items[activeSuggestionIndex];
+            if (activeItem) {
+                searchInput.setAttribute('aria-activedescendant', activeItem.id);
+                activeItem.scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function openSuggestion(index) {
+            const product = searchResults[index];
+            if (!product) return;
+            closeSuggestions();
+            showDetails(product.sku);
+        }
+
+        function handleSearch() {
+            const query = searchInput.value;
+            const normalizedQuery = query.trim();
+            updateClearButton();
+
+            if (!normalizedQuery) {
+                filterProducts(lastBrowsingCategory || 'DESTACADOS');
+                renderSearchSuggestions('');
+                return;
+            }
+
+            render(fastSearchProducts(query), 'BÚSQUEDA');
+            renderSearchSuggestions(query);
+        }
+
+        searchInput.addEventListener('input', handleSearch);
+        searchInput.addEventListener('focus', function(){
+            if (searchInput.value.trim()) renderSearchSuggestions(searchInput.value);
+        });
+        searchInput.addEventListener('keydown', function(e){
+            const items = [...suggestionBox.querySelectorAll('.suggestion-item')];
+
+            if (e.key === 'ArrowDown') {
+                if (!items.length) return;
+                e.preventDefault();
+                setActiveSuggestion(activeSuggestionIndex < items.length - 1 ? activeSuggestionIndex + 1 : 0);
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                if (!items.length) return;
+                e.preventDefault();
+                setActiveSuggestion(activeSuggestionIndex > 0 ? activeSuggestionIndex - 1 : items.length - 1);
+                return;
+            }
+
+            if (e.key === 'Enter') {
+                if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+                    e.preventDefault();
+                    openSuggestion(activeSuggestionIndex);
+                    return;
+                }
+                if (items.length === 1) {
+                    e.preventDefault();
+                    openSuggestion(0);
+                }
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeSuggestions();
+                return;
+            }
+        });
+        clearSearchButton.addEventListener('click', function(){
+            searchInput.value = '';
+            updateClearButton();
+            closeSuggestions();
+            filterProducts(lastBrowsingCategory || 'DESTACADOS');
+            searchInput.focus();
+        });
+        suggestionBox.addEventListener('mousemove', function(e){
+            const item = e.target.closest('.suggestion-item');
+            if (!item) return;
+            setActiveSuggestion(Number(item.dataset.index));
+        });
+        suggestionBox.addEventListener('mousedown', function(e){
+            const item = e.target.closest('.suggestion-item');
+            if (!item) return;
+            e.preventDefault();
+            openSuggestion(Number(item.dataset.index));
+        });
+        document.addEventListener('click', function(e){
+            if (!searchWrap.contains(e.target)) closeSuggestions();
+        });
+
+// Carga inicial filtrada correctamente
+        filterProducts("DESTACADOS");
+    </script>
+</body>
+</html>
