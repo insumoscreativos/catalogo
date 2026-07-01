@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Productos - Insumos Creativos</title>
+  <script src="https://cdn.tailwindcss.com">
+function updateStats(){const ps=getAdminProducts();document.getElementById('statProducts').textContent=ps.length;const c=new Set();let i=0;ps.forEach(p=>{(p.category||[]).forEach(x=>c.add(x));i+=(p.images||[]).length});document.getElementById('statCats').textContent=c.size;document.getElementById('statImgs').textContent=i;}
+const __r=renderAdminProducts;renderAdminProducts=function(){__r();updateStats();};
+const __s=saveProduct;saveProduct=function(){__s();updateStats();};
+const __d=deleteProduct;deleteProduct=function(){if(confirm('¿Eliminar este producto?')){__d();updateStats();}};
+updateStats();
+
+
+function nuevoProducto(){
+ const ps=getAdminProducts();
+ ps.unshift({sku:"",name:"Nuevo producto",price:0,category:[],images:[],description:""});
+ saveAdminProducts(ps);
+ renderAdminProducts();
+ updateStats&&updateStats();
+ alert("Producto creado. Edítalo en la lista.");
+}
+
+function validarSkuUnico(sku){
+ const ps=getAdminProducts();
+ return ps.filter(p=>p.sku===sku).length<=1;
+}
+const _save=saveProduct;
+saveProduct=function(){
+ const sku=skuInput.value.trim().toUpperCase();
+ if(!sku){showMessage('Debe ingresar un SKU',false);return;}
+ if(!validarSkuUnico(sku)){showMessage('SKU duplicado',false);return;}
+ _save();
+}
+
+function exportarProductosJS(){
+ const data='const myProducts = '+JSON.stringify(getAdminProducts(),null,4)+';';
+ const blob=new Blob([data],{type:'application/javascript'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='productos.js';
+ a.click();
+ URL.revokeObjectURL(a.href);
+ showMessage('productos.js exportado correctamente',true);
+}
+</script>
+  <style>
+    body{background:#f5f2ee}
+    .card{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+    .cat-item input:checked + span{background:#3e6d6d;color:#fff;border-color:#3e6d6d}
+    textarea, input{outline:none}
+    .error{border-color:#dc2626 !important; background:#fff5f5}
+    .ok{border-color:#16a34a !important}
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 text-gray-800">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">Panel de productos v1.6</h1>
+        <p class="text-sm text-gray-500">Insumos Creativos - Carga, edición y descarga para GitHub</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="resetForm()" class="px-4 py-2 rounded-lg bg-gray-200 font-semibold">Limpiar</button>
+        <button onclick="downloadProductsJs()" class="px-4 py-2 rounded-lg bg-[#3e6d6d] text-white font-semibold">Descargar productos.js</button>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-6"><div class="grid grid-cols-3 gap-4 text-center"><div><div class="text-sm">Productos</div><div id="statProducts" class="text-2xl font-bold">0</div></div><div><div class="text-sm">Categorías</div><div id="statCats" class="text-2xl font-bold">0</div></div><div><div class="text-sm">Imágenes</div><div id="statImgs" class="text-2xl font-bold">0</div></div></div></div><div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 card p-5">
+        <h2 class="text-xl font-bold mb-4">Nuevo / Editar producto</h2>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">SKU *</label>
+            <div style="text-align:right;margin:10px 0;"><button id="btnNuevoProducto" onclick="nuevoProducto()">➕ Nuevo producto</button></div>
+<input id="sku" type="text" class="w-full border rounded-lg p-3" placeholder="Ej: TICH50" required>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Precio *</label>
+            <input id="price" type="number" class="w-full border rounded-lg p-3" placeholder="Ej: 19990" required min="1">
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-1">Nombre *</label>
+          <input id="name" type="text" class="w-full border rounded-lg p-3" placeholder="Nombre del producto" required>
+        </div>
+
+        <div class="mt-4 card p-4 border border-dashed border-gray-300">
+          <div class="flex flex-col md:flex-row md:items-end gap-3">
+            <div class="flex-1">
+              <label class="block text-sm font-semibold mb-1">Nueva categoría</label>
+              <input id="newCategory" type="text" class="w-full border rounded-lg p-3" placeholder="Escribe una categoría nueva">
+            </div>
+            <button onclick="addCategory()" class="px-4 py-3 rounded-lg bg-gray-800 text-white font-semibold">Agregar categoría</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Puedes crear categorías nuevas si no existen.</p>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-2">Categorías *</label>
+          <div id="categoryBox" class="grid sm:grid-cols-2 gap-2"></div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-1">Descripción *</label>
+          <textarea id="desc" rows="5" class="w-full border rounded-lg p-3" placeholder="Descripción del producto" required></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-1">Imágenes *</label>
+          <input type="file" id="imageFiles" multiple accept="image/*" class="w-full border rounded-lg p-3 mb-2">
+<textarea id="images" rows="4" class="w-full border rounded-lg p-3" placeholder="Los nombres aparecerán aquí automáticamente" required></textarea>
+<div id="imagePreviewList" class="grid grid-cols-4 gap-2 mt-3"></div>
+<p class="text-xs text-gray-500 mt-1">Selecciona varias imágenes y sus nombres se completarán automáticamente.</p>
+        </div>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+          <button onclick="saveProduct()" class="px-5 py-3 rounded-lg bg-[#3e6d6d] text-white font-bold">Guardar producto</button>
+          <button onclick="deleteProduct()" class="px-5 py-3 rounded-lg bg-red-600 text-white font-bold">Eliminar producto</button>
+        </div>
+
+        <div id="msg" class="mt-4 text-sm font-semibold"></div>
+      </div>
+
+      <div class="card p-5">
+        <h2 class="text-xl font-bold mb-4">Vista previa</h2>
+        <div id="preview" class="border rounded-xl p-4 bg-gray-50">
+          <div class="aspect-square bg-white rounded-lg border flex items-center justify-center text-gray-400 mb-3">Sin imagen</div>
+          <h3 class="font-bold text-lg">Nombre producto</h3>
+          <p class="text-xs text-gray-400 font-mono mb-2">SKU: ---</p>
+          <p class="text-[#3e6d6d] font-bold text-xl">$0</p>
+          <p class="text-sm text-gray-600 mt-2">Descripción del producto...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-5 mt-6">
+      <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
+        <h2 class="text-xl font-bold">Productos guardados en el panel</h2>
+        <input id="searchAdmin" type="text" class="border rounded-lg p-3 w-full md:w-80" placeholder="Buscar por SKU o nombre">
+      </div>
+      <div id="productList" class="grid md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </div>
+  </div>
+
+  <script src="productos.js"></script>
+  <script>
+    const ADMIN_STORAGE_KEY = 'ic_admin_products';
+    const CATEGORIES_KEY = 'ic_admin_categories';
+    const DEFAULT_CATEGORIES = ['DESTACADOS','ACCESORIOS CELULAR','INVIERNO','LANYARDS E IDENTIFICACIÓN','SUBLIMACIÓN'];
+    const skuInput = document.getElementById('sku');
+    const nameInput = document.getElementById('name');
+    const priceInput = document.getElementById('price');
+    const descInput = document.getElementById('desc');
+    const imagesInput = document.getElementById('images');
+    const newCategoryInput = document.getElementById('newCategory');
+    const msg = document.getElementById('msg');
+    const preview = document.getElementById('preview');
+    const productList = document.getElementById('productList');
+    const searchAdmin = document.getElementById('searchAdmin');
+    const categoryBox = document.getElementById('categoryBox');
+
+    function formatPrice(value){ return '$' + Number(value || 0).toLocaleString('es-CL'); }
+    function getCategories(){ try { return JSON.parse(localStorage.getItem(CATEGORIES_KEY)) || DEFAULT_CATEGORIES; } catch { return DEFAULT_CATEGORIES; } }
+    function setCategories(list){ localStorage.setItem(CATEGORIES_KEY, JSON.stringify([...new Set(list.map(v => v.trim()).filter(Boolean))])); }
+    function renderCategoryOptions(){ const cats = getCategories(); categoryBox.innerHTML = cats.map(cat => `<label class="cat-item cursor-pointer"><input type="checkbox" value="${cat}" class="hidden category-check"><span class="block border rounded-lg p-3 text-sm font-semibold transition">${cat}</span></label>`).join(''); }
+    function getSelectedCategories(){ return [...document.querySelectorAll('.category-check:checked')].map(el => el.value); }
+    function setSelectedCategories(categories){ const selected = Array.isArray(categories) ? categories : []; document.querySelectorAll('.category-check').forEach(chk => chk.checked = selected.includes(chk.value)); }
+    function getAdminProducts(){
+      let products=[];
+      try{products=JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY))||[];}catch(e){}
+      if(products.length===0 && typeof myProducts!=="undefined"){
+        products=JSON.parse(JSON.stringify(myProducts));
+        localStorage.setItem(ADMIN_STORAGE_KEY,JSON.stringify(products));
+      }
+      return products;
+    }
+    function setAdminProducts(products){ localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(products)); }
+    function buildProductFromForm(){ return { sku: skuInput.value.trim().toUpperCase(), name: nameInput.value.trim(), price: Number(priceInput.value || 0), desc: descInput.value.trim(), category: getSelectedCategories(), images: imagesInput.value.split('\n').map(v => v.trim()).filter(Boolean) }; }
+    function validateProduct(product){ const missing = []; if (!product.sku) missing.push('SKU'); if (!product.name) missing.push('Nombre'); if (!product.price) missing.push('Precio'); if (!product.desc) missing.push('Descripción'); if (!product.category.length) missing.push('Categorías'); if (!product.images.length) missing.push('Imágenes'); return missing; }
+    function showMessage(text, ok = true){ msg.textContent = text; msg.className = 'mt-4 text-sm font-semibold ' + (ok ? 'text-green-700' : 'text-red-600'); }
+    function markErrors(product){ [skuInput, nameInput, priceInput, descInput, imagesInput].forEach(el => el.classList.remove('error','ok')); document.querySelectorAll('.category-check').forEach(el => el.nextElementSibling.classList.remove('error','ok')); if (!product.sku) skuInput.classList.add('error'); else skuInput.classList.add('ok'); if (!product.name) nameInput.classList.add('error'); else nameInput.classList.add('ok'); if (!product.price) priceInput.classList.add('error'); else priceInput.classList.add('ok'); if (!product.desc) descInput.classList.add('error'); else descInput.classList.add('ok'); if (!product.images.length) imagesInput.classList.add('error'); else imagesInput.classList.add('ok'); const cats = getSelectedCategories(); document.querySelectorAll('.category-check').forEach(el => { const s = el.nextElementSibling; if (!cats.includes(el.value)) s.classList.remove('ok'); else s.classList.add('ok'); }); }
+    function saveProduct(){ const product = buildProductFromForm(); const missing = validateProduct(product); markErrors(product); if (missing.length){ showMessage('Completa: ' + missing.join(', '), false); return; } const products = getAdminProducts(); const index = products.findIndex(p => p.sku === product.sku); if (index >= 0){ products[index] = product; showMessage('Producto actualizado correctamente'); } else { products.push(product); showMessage('Producto guardado correctamente'); } setAdminProducts(products); renderAdminProducts(); updatePreview(); }
+    function deleteProduct(){ const sku = skuInput.value.trim().toUpperCase(); if (!sku){ showMessage('Primero escribe un SKU', false); return; } const products = getAdminProducts(); const filtered = products.filter(p => p.sku !== sku); if (filtered.length === products.length){ showMessage('Ese SKU no existe en el panel', false); return; } setAdminProducts(filtered); resetForm(); renderAdminProducts(); showMessage('Producto eliminado'); }
+    function editProduct(sku){ const product = getAdminProducts().find(p => p.sku === sku); if (!product) return; skuInput.value = product.sku || ''; nameInput.value = product.name || ''; priceInput.value = product.price || ''; descInput.value = product.desc || ''; imagesInput.value = (product.images || []).join('\n'); setSelectedCategories(product.category || []); updatePreview(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function resetForm(){ skuInput.value = ''; nameInput.value = ''; priceInput.value = ''; descInput.value = ''; imagesInput.value = ''; newCategoryInput.value = ''; setSelectedCategories([]); [skuInput, nameInput, priceInput, descInput, imagesInput].forEach(el => el.classList.remove('error','ok')); showMessage(''); updatePreview(); }
+    function addCategory(){ const newCat = newCategoryInput.value.trim(); if (!newCat){ showMessage('Escribe un nombre de categoría', false); return; } const cats = getCategories(); if (!cats.includes(newCat)) cats.push(newCat); setCategories(cats); newCategoryInput.value = ''; renderCategoryOptions(); showMessage('Categoría agregada'); }
+    function renderAdminProducts(){ const term = searchAdmin.value.trim().toLowerCase(); const products = getAdminProducts().filter(p => !term || p.sku.toLowerCase().includes(term) || p.name.toLowerCase().includes(term)); if (!products.length){ productList.innerHTML = '<div class="text-gray-500">No hay productos guardados en este panel.</div>'; return; } productList.innerHTML = products.map(p => `<div class="border rounded-xl p-4 bg-white"><div class="aspect-square bg-gray-50 rounded-lg border mb-3 overflow-hidden flex items-center justify-center">${p.images && p.images[0] ? `<img src="${p.images[0]}" class="w-full h-full object-contain">` : '<span class="text-gray-400">Sin imagen</span>'}</div><h3 class="font-bold">${p.name}</h3><p class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</p><p class="text-[#3e6d6d] font-bold my-2">${formatPrice(p.price)}</p><p class="text-xs text-gray-500 mb-3">${(p.category || []).join(' | ')}</p><button onclick="editProduct('${p.sku}')" class="w-full bg-[#3e6d6d] text-white py-2 rounded-lg font-bold">Editar</button></div>`).join(''); }
+    function updatePreview(){ const product = buildProductFromForm(); preview.innerHTML = `<div class="aspect-square bg-white rounded-lg border flex items-center justify-center overflow-hidden mb-3">${product.images[0] ? `<img src="${product.images[0]}" class="w-full h-full object-contain">` : '<span class="text-gray-400">Sin imagen</span>'}</div><h3 class="font-bold text-lg">${product.name || 'Nombre producto'}</h3><p class="text-xs text-gray-400 font-mono mb-2">SKU: ${product.sku || '---'}</p><p class="text-[#3e6d6d] font-bold text-xl">${formatPrice(product.price)}</p><p class="text-sm text-gray-600 mt-2">${product.desc || 'Descripción del producto...'}</p>`; }
+    function downloadProductsJs(){ const products = getAdminProducts(); if (!products.length){ showMessage('No hay productos para descargar', false); return; } const content = `const myProducts = ${JSON.stringify(products, null, 2)};\nmyProducts.forEach(p=>{p._name=p.name.toLowerCase();p._sku=p.sku.toLowerCase();});\n`; const blob = new Blob([content], { type: 'application/javascript;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'productos.js'; a.click(); URL.revokeObjectURL(url); showMessage('Se descargó productos.js. Reemplaza el archivo viejo por este.'); }
+    [skuInput, nameInput, priceInput, descInput, imagesInput].forEach(el => el.addEventListener('input', updatePreview));
+    newCategoryInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } });
+    document.addEventListener('change', function(e){ if (e.target.classList.contains('category-check')) updatePreview(); });
+    searchAdmin.addEventListener('input', renderAdminProducts);
+    
+const imageFiles=document.getElementById('imageFiles');
+const imagePreviewList=document.getElementById('imagePreviewList');
+imageFiles.addEventListener('change',()=>{
+ const files=[...imageFiles.files];
+ imagesInput.value=files.map(f=>f.name).join('\n');
+ imagePreviewList.innerHTML='';
+ files.forEach(file=>{
+  const r=new FileReader();
+  r.onload=e=>{
+    const d=document.createElement('div');
+    d.className='border rounded p-2 text-center';
+    d.innerHTML=`<img src="${e.target.result}" class="w-full h-20 object-contain mb-1"><div class="text-xs break-all">${file.name}</div>`;
+    imagePreviewList.appendChild(d);
+  };
+  r.readAsDataURL(file);
+ });
+ updatePreview();
+});
+
+renderCategoryOptions(); renderAdminProducts(); updatePreview();
+  </script>
+<button onclick="exportarProductosJS()" style="position:fixed;right:20px;bottom:20px;padding:12px 18px;">💾 Exportar productos.js</button></body>
+</html>

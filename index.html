@@ -34,13 +34,7 @@ mark{background:#fff59d;padding:0 .08em;border-radius:3px}
                 <img src="logo.jpeg" alt="Logo" class="w-24 h-24 rounded-full border-2 border-white mb-4 object-cover">
                 <h1 class="text-lg font-bold text-center text-white">TIENDA INSUMOS CREATIVOS</h1>
             </div>
-            <nav class="space-y-2 mb-8">
-                <button onclick="filterProducts('DESTACADOS'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">DESTACADOS</button>
-                <button onclick="filterProducts('ACCESORIOS CELULAR'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">ACCESORIOS CELULAR</button>
-                <button onclick="filterProducts('INVIERNO'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">INVIERNO</button>
-                <button onclick="filterProducts('LANYARDS E IDENTIFICACIÓN'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">LANYARDS E IDENTIFICACIÓN</button>
-                <button onclick="filterProducts('SUBLIMACIÓN'); document.getElementById('sidebar').classList.add('hidden')" class="w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white">SUBLIMACIÓN</button>
-            </nav>
+            <nav id="categoryNav" class="space-y-2 mb-8"></nav>
             <div class="flex justify-center gap-6 pt-6 border-t border-[#2c4e4e]">
                 <a href="https://web.facebook.com/insumos.creativos.2025/" target="_blank" class="text-white hover:text-gray-200 text-2xl transition">
                     <i class="fab fa-facebook"></i>
@@ -68,8 +62,8 @@ mark{background:#fff59d;padding:0 .08em;border-radius:3px}
 
     <script src="productos.js"></script>
     <script>
-        const adminProducts = JSON.parse(localStorage.getItem('ic_admin_products') || '[]');
-        const allProducts = [...myProducts, ...adminProducts];
+        // Solo usar productos publicados en productos.js
+        const allProducts = [...myProducts];
 
         function normalize(text) {
             return (text || '')
@@ -86,6 +80,30 @@ mark{background:#fff59d;padding:0 .08em;border-radius:3px}
             p._searchName = normalize(p.name);
             p._searchSku = normalize(p.sku);
             p._searchText = `${p._searchName} ${p._searchSku}`;
+        });
+
+        function getSiteCategories() {
+            const cats = new Set();
+            allProducts.forEach(p => {
+                const list = Array.isArray(p.category) ? p.category : (p.category ? [p.category] : []);
+                list.forEach(c => { if (c) cats.add(c); });
+            });
+            const sorted = [...cats].sort((a, b) => a.localeCompare(b, 'es'));
+            const idx = sorted.indexOf('DESTACADOS');
+            if (idx > -1) { sorted.splice(idx, 1); sorted.unshift('DESTACADOS'); }
+            return sorted;
+        }
+
+        function renderCategoryNav() {
+            const nav = document.getElementById('categoryNav');
+            nav.innerHTML = getSiteCategories().map(cat => `<button type="button" class="cat-nav-btn w-full text-left p-3 hover:bg-[#2c4e4e] rounded transition font-medium text-xs uppercase text-white" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('');
+        }
+
+        document.getElementById('categoryNav').addEventListener('click', function(e){
+            const btn = e.target.closest('.cat-nav-btn');
+            if (!btn) return;
+            filterProducts(btn.dataset.cat);
+            document.getElementById('sidebar').classList.add('hidden');
         });
 
         let currentCategory = "DESTACADOS";
@@ -122,7 +140,7 @@ mark{background:#fff59d;padding:0 .08em;border-radius:3px}
                             <h2 class="text-3xl font-bold">${p.name || ''}</h2>
                             <p class="text-lg text-gray-500 font-mono mb-4">SKU: ${p.sku || ''}</p>
                             <p class="text-2xl text-[#3e6d6d] font-bold my-4">$${Number(p.price || 0).toLocaleString()}</p>
-                            <div class="text-gray-600 mb-6">${p.desc || ''}</div>
+                            <div class="text-gray-600 mb-6" style="white-space:pre-line">${p.desc || ''}</div>
                             <a href="https://wa.me/56934863212?text=Consulta por: ${encodeURIComponent(p.name || '')} - SKU: ${encodeURIComponent(p.sku || '')}" class="block w-full bg-[#3e6d6d] text-white py-3 rounded-lg font-bold text-center">Consultar por WhatsApp</a>
                         </div>
                     </div>
@@ -375,6 +393,7 @@ mark{background:#fff59d;padding:0 .08em;border-radius:3px}
             if (!searchWrap.contains(e.target)) closeSuggestions();
         });
 
+        renderCategoryNav();
         filterProducts("DESTACADOS");
     </script>
 </body>
