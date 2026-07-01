@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Productos - Insumos Creativos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{background:#f5f2ee}
+    .card{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+    .cat-item input:checked + span{background:#3e6d6d;color:#fff;border-color:#3e6d6d}
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 text-gray-800">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">Panel de productos</h1>
+        <p class="text-sm text-gray-500">Insumos Creativos - Carga, edición y exportación</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="resetForm()" class="px-4 py-2 rounded-lg bg-gray-200 font-semibold">Limpiar</button>
+        <button onclick="exportProducts()" class="px-4 py-2 rounded-lg bg-amber-500 text-white font-semibold">Exportar JSON</button>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 card p-5">
+        <h2 class="text-xl font-bold mb-4">Nuevo / Editar producto</h2>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">SKU</label>
+            <input id="sku" type="text" class="w-full border rounded-lg p-3" placeholder="Ej: TICH50">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Precio</label>
+            <input id="price" type="number" class="w-full border rounded-lg p-3" placeholder="Ej: 19990">
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-1">Nombre</label>
+          <input id="name" type="text" class="w-full border rounded-lg p-3" placeholder="Nombre del producto">
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-2">Categorías</label>
+          <div id="categoryBox" class="grid sm:grid-cols-2 gap-2"></div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-1">Descripción</label>
+          <textarea id="desc" rows="5" class="w-full border rounded-lg p-3" placeholder="Descripción del producto"></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-semibold mb-1">Imágenes</label>
+          <textarea id="images" rows="4" class="w-full border rounded-lg p-3" placeholder="Una por línea&#10;Ej: H50-1.jpg&#10;H50-2.jpg"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Escribe una imagen por línea.</p>
+        </div>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+          <button onclick="saveProduct()" class="px-5 py-3 rounded-lg bg-[#3e6d6d] text-white font-bold">Guardar producto</button>
+          <button onclick="deleteProduct()" class="px-5 py-3 rounded-lg bg-red-600 text-white font-bold">Eliminar producto</button>
+        </div>
+
+        <div id="msg" class="mt-4 text-sm font-semibold"></div>
+      </div>
+
+      <div class="card p-5">
+        <h2 class="text-xl font-bold mb-4">Vista previa</h2>
+        <div id="preview" class="border rounded-xl p-4 bg-gray-50">
+          <div class="aspect-square bg-white rounded-lg border flex items-center justify-center text-gray-400 mb-3">
+            Sin imagen
+          </div>
+          <h3 class="font-bold text-lg">Nombre producto</h3>
+          <p class="text-xs text-gray-400 font-mono mb-2">SKU: ---</p>
+          <p class="text-[#3e6d6d] font-bold text-xl">$0</p>
+          <p class="text-sm text-gray-600 mt-2">Descripción del producto...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-5 mt-6">
+      <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
+        <h2 class="text-xl font-bold">Productos guardados en el panel</h2>
+        <input id="searchAdmin" type="text" class="border rounded-lg p-3 w-full md:w-80" placeholder="Buscar por SKU o nombre">
+      </div>
+      <div id="productList" class="grid md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_STORAGE_KEY = 'ic_admin_products';
+    const CATEGORIES = [
+      'DESTACADOS',
+      'ACCESORIOS CELULAR',
+      'INVIERNO',
+      'LANYARDS E IDENTIFICACIÓN',
+      'SUBLIMACIÓN'
+    ];
+
+    const skuInput = document.getElementById('sku');
+    const nameInput = document.getElementById('name');
+    const priceInput = document.getElementById('price');
+    const descInput = document.getElementById('desc');
+    const imagesInput = document.getElementById('images');
+    const msg = document.getElementById('msg');
+    const preview = document.getElementById('preview');
+    const productList = document.getElementById('productList');
+    const searchAdmin = document.getElementById('searchAdmin');
+    const categoryBox = document.getElementById('categoryBox');
+
+    function formatPrice(value) {
+      return '$' + Number(value || 0).toLocaleString('es-CL');
+    }
+
+    function renderCategoryOptions() {
+      categoryBox.innerHTML = CATEGORIES.map(cat => `
+        <label class="cat-item cursor-pointer">
+          <input type="checkbox" value="${cat}" class="hidden category-check">
+          <span class="block border rounded-lg p-3 text-sm font-semibold transition">${cat}</span>
+        </label>
+      `).join('');
+    }
+
+    function getSelectedCategories() {
+      return [...document.querySelectorAll('.category-check:checked')].map(el => el.value);
+    }
+
+    function setSelectedCategories(categories) {
+      const selected = Array.isArray(categories) ? categories : [];
+      document.querySelectorAll('.category-check').forEach(chk => {
+        chk.checked = selected.includes(chk.value);
+      });
+    }
+
+    function getAdminProducts() {
+      try {
+        return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function setAdminProducts(products) {
+      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(products));
+    }
+
+    function buildProductFromForm() {
+      return {
+        sku: skuInput.value.trim().toUpperCase(),
+        name: nameInput.value.trim(),
+        price: Number(priceInput.value || 0),
+        desc: descInput.value.trim(),
+        category: getSelectedCategories(),
+        images: imagesInput.value.split('\n').map(v => v.trim()).filter(Boolean)
+      };
+    }
+
+    function validateProduct(product) {
+      if (!product.sku) return 'Debes ingresar SKU';
+      if (!product.name) return 'Debes ingresar nombre';
+      if (!product.price) return 'Debes ingresar precio';
+      if (!product.desc) return 'Debes ingresar descripción';
+      if (!product.category.length) return 'Debes elegir al menos una categoría';
+      if (!product.images.length) return 'Debes ingresar al menos una imagen';
+      return '';
+    }
+
+    function showMessage(text, ok = true) {
+      msg.textContent = text;
+      msg.className = 'mt-4 text-sm font-semibold ' + (ok ? 'text-green-700' : 'text-red-600');
+    }
+
+    function saveProduct() {
+      const product = buildProductFromForm();
+      const error = validateProduct(product);
+      if (error) {
+        showMessage(error, false);
+        return;
+      }
+
+      const products = getAdminProducts();
+      const index = products.findIndex(p => p.sku === product.sku);
+
+      if (index >= 0) {
+        products[index] = product;
+        showMessage('Producto actualizado correctamente');
+      } else {
+        products.push(product);
+        showMessage('Producto guardado correctamente');
+      }
+
+      setAdminProducts(products);
+      renderAdminProducts();
+      updatePreview();
+    }
+
+    function deleteProduct() {
+      const sku = skuInput.value.trim().toUpperCase();
+      if (!sku) {
+        showMessage('Primero carga o escribe un SKU', false);
+        return;
+      }
+
+      const products = getAdminProducts();
+      const filtered = products.filter(p => p.sku !== sku);
+
+      if (filtered.length === products.length) {
+        showMessage('Ese SKU no existe en el panel', false);
+        return;
+      }
+
+      setAdminProducts(filtered);
+      resetForm();
+      renderAdminProducts();
+      showMessage('Producto eliminado');
+    }
+
+    function editProduct(sku) {
+      const product = getAdminProducts().find(p => p.sku === sku);
+      if (!product) return;
+
+      skuInput.value = product.sku || '';
+      nameInput.value = product.name || '';
+      priceInput.value = product.price || '';
+      descInput.value = product.desc || '';
+      imagesInput.value = (product.images || []).join('\n');
+      setSelectedCategories(product.category || []);
+      updatePreview();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      skuInput.value = '';
+      nameInput.value = '';
+      priceInput.value = '';
+      descInput.value = '';
+      imagesInput.value = '';
+      setSelectedCategories([]);
+      showMessage('');
+      updatePreview();
+    }
+
+    function renderAdminProducts() {
+      const term = searchAdmin.value.trim().toLowerCase();
+      const products = getAdminProducts().filter(p => {
+        return !term || p.sku.toLowerCase().includes(term) || p.name.toLowerCase().includes(term);
+      });
+
+      if (!products.length) {
+        productList.innerHTML = '<div class="text-gray-500">No hay productos guardados en este panel.</div>';
+        return;
+      }
+
+      productList.innerHTML = products.map(p => `
+        <div class="border rounded-xl p-4 bg-white">
+          <div class="aspect-square bg-gray-50 rounded-lg border mb-3 overflow-hidden flex items-center justify-center">
+            ${p.images && p.images[0] ? `<img src="${p.images[0]}" class="w-full h-full object-contain">` : '<span class="text-gray-400">Sin imagen</span>'}
+          </div>
+          <h3 class="font-bold">${p.name}</h3>
+          <p class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</p>
+          <p class="text-[#3e6d6d] font-bold my-2">${formatPrice(p.price)}</p>
+          <p class="text-xs text-gray-500 mb-3">${(p.category || []).join(' | ')}</p>
+          <button onclick="editProduct('${p.sku}')" class="w-full bg-[#3e6d6d] text-white py-2 rounded-lg font-bold">Editar</button>
+        </div>
+      `).join('');
+    }
+
+    function updatePreview() {
+      const product = buildProductFromForm();
+      preview.innerHTML = `
+        <div class="aspect-square bg-white rounded-lg border flex items-center justify-center overflow-hidden mb-3">
+          ${product.images[0] ? `<img src="${product.images[0]}" class="w-full h-full object-contain">` : '<span class="text-gray-400">Sin imagen</span>'}
+        </div>
+        <h3 class="font-bold text-lg">${product.name || 'Nombre producto'}</h3>
+        <p class="text-xs text-gray-400 font-mono mb-2">SKU: ${product.sku || '---'}</p>
+        <p class="text-[#3e6d6d] font-bold text-xl">${formatPrice(product.price)}</p>
+        <p class="text-sm text-gray-600 mt-2">${product.desc || 'Descripción del producto...'}</p>
+      `;
+    }
+
+    function exportProducts() {
+      const products = getAdminProducts();
+      if (!products.length) {
+        showMessage('No hay productos para exportar', false);
+        return;
+      }
+
+      const content = 'const extraProducts = ' + JSON.stringify(products, null, 2) + ';';
+      const blob = new Blob([content], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'extra-productos.js';
+      a.click();
+      URL.revokeObjectURL(url);
+      showMessage('Archivo exportado correctamente');
+    }
+
+    [skuInput, nameInput, priceInput, descInput, imagesInput].forEach(el => {
+      el.addEventListener('input', updatePreview);
+    });
+
+    document.addEventListener('change', function(e) {
+      if (e.target.classList.contains('category-check')) updatePreview();
+    });
+
+    searchAdmin.addEventListener('input', renderAdminProducts);
+
+    renderCategoryOptions();
+    renderAdminProducts();
+    updatePreview();
+  </script>
+</body>
+</html>
