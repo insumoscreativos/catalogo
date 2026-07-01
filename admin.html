@@ -9,6 +9,7 @@
     body{background:#f5f2ee}
     .card{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
     .cat-item input:checked + span{background:#3e6d6d;color:#fff;border-color:#3e6d6d}
+    textarea, input{outline:none}
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 text-gray-800">
@@ -16,11 +17,11 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold">Panel de productos</h1>
-        <p class="text-sm text-gray-500">Insumos Creativos - Carga, edición y exportación</p>
+        <p class="text-sm text-gray-500">Insumos Creativos - Carga, edición y exportación para GitHub</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button onclick="resetForm()" class="px-4 py-2 rounded-lg bg-gray-200 font-semibold">Limpiar</button>
-        <button onclick="exportProducts()" class="px-4 py-2 rounded-lg bg-amber-500 text-white font-semibold">Exportar JSON</button>
+        <button onclick="copyProductsJs()" class="px-4 py-2 rounded-lg bg-[#3e6d6d] text-white font-semibold">Copiar productos.js</button>
       </div>
     </div>
 
@@ -201,7 +202,7 @@
     function deleteProduct() {
       const sku = skuInput.value.trim().toUpperCase();
       if (!sku) {
-        showMessage('Primero carga o escribe un SKU', false);
+        showMessage('Primero escribe un SKU', false);
         return;
       }
 
@@ -282,22 +283,20 @@
       `;
     }
 
-    function exportProducts() {
+    function copyProductsJs() {
       const products = getAdminProducts();
       if (!products.length) {
-        showMessage('No hay productos para exportar', false);
+        showMessage('No hay productos para copiar', false);
         return;
       }
 
-      const content = 'const extraProducts = ' + JSON.stringify(products, null, 2) + ';';
-      const blob = new Blob([content], { type: 'application/javascript' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'extra-productos.js';
-      a.click();
-      URL.revokeObjectURL(url);
-      showMessage('Archivo exportado correctamente');
+      const content = `const myProducts = ${JSON.stringify(products, null, 2)};\nmyProducts.forEach(p=>{p._name=p.name.toLowerCase();p._sku=p.sku.toLowerCase();});`;
+      navigator.clipboard.writeText(content).then(() => {
+        showMessage('productos.js copiado. Pégalo en GitHub.');
+      }).catch(() => {
+        showMessage('No se pudo copiar automáticamente. Selecciona y copia el bloque.', false);
+        prompt('Copia este contenido y pégalo en productos.js', content);
+      });
     }
 
     [skuInput, nameInput, priceInput, descInput, imagesInput].forEach(el => {
